@@ -1,42 +1,64 @@
 import React from 'react';
+import axios from 'axios';
 import './App.css';
 import UserList from "./components/UserList";
+import UserFormikForm from "./components/UserForm";
 
 class App extends React.Component {
   constructor() {
     super();
     this.state = {
-      users: []
+      users: [],
+      username: "HeribertoGalvezGarcia"
     };
   }
 
-  addUserWithFollowers = url => {
-    this.addUser(url);
+  addUserWithFollowers = username => {
+    this.setState({users: []});
+    this.addUser(username);
 
-    fetch(`${url}/followers`)
-      .then(res => res.json())
-      .then(users => {
-        for (const user of users) this.addUser(user.url)
-      });
+    axios.get(`https://api.github.com/users/${username}/followers`, {
+      headers: {
+        'Authorization': 'token 7c1161ff37e2e2e55c62376b37ba311138b274ec'
+      }
+    })
+      .then(({data: users}) => {
+        for (const user of users) this.addUser(user.login)
+      })
+      .catch(e => console.log(e));
   };
 
-  addUser = url => {
-    fetch(url)
-      .then(res => res.json())
-      .then(user => this.setState(state => {
+  addUser = username => {
+    axios.get(`https://api.github.com/users/${username}`, {
+      headers: {
+        'Authorization': 'token 7c1161ff37e2e2e55c62376b37ba311138b274ec'
+      }
+    })
+      .then(({data: user}) => this.setState(state => {
         state.users = [...state.users, user];
         return state
       }))
       .catch(e => console.log(e));
   };
 
+  setUser = username => {
+    this.setState({username});
+  };
+
   componentDidMount() {
-    this.addUserWithFollowers("https://api.github.com/users/HeribertoGalvezGarcia");
+    this.addUserWithFollowers(this.state.username);
+  }
+
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    if (this.state.username !== prevState.username) {
+      this.addUserWithFollowers(this.state.username);
+    }
   }
 
   render() {
     return (
       <div>
+        <UserFormikForm setUser={this.setUser} />
         <UserList users={this.state.users} />
       </div>
     );
